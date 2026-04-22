@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador de Compra de Local</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f0;color:#1a1a1a;min-height:100vh;padding:2rem 1rem}
+  .container{max-width:940px;margin:0 auto}
+  header{text-align:center;margin-bottom:2rem}
+  header h1{font-size:1.9rem;font-weight:700;margin-bottom:.4rem}
+  header p{font-size:.95rem;color:#666}
+  .card{background:#fff;border-radius:16px;border:1px solid #e5e5e0;padding:1.5rem;margin-bottom:1.25rem}
+  .card-title{font-size:.75rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:1.2rem}
+
+  /* INPUT GRID */
+  .inputs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.25rem}
+  .input-group{display:flex;flex-direction:column;gap:6px}
+  .input-group label{font-size:.82rem;color:#555;font-weight:600}
+  .input-row{display:flex;align-items:center;gap:8px}
+  .input-row input[type="number"]{width:110px;padding:7px 10px;border:1px solid #ddd;border-radius:8px;font-size:.95rem;font-weight:600;color:#1a1a1a;background:#fff;outline:none;-moz-appearance:textfield}
+  .input-row input[type="number"]::-webkit-outer-spin-button,
+  .input-row input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .input-row input[type="number"]:focus{border-color:#7F77DD;box-shadow:0 0 0 3px rgba(127,119,221,.15)}
+  .input-row .unit{font-size:.82rem;color:#888}
+  input[type="range"]{width:100%;height:4px;-webkit-appearance:none;appearance:none;background:#ddd;border-radius:4px;outline:none;cursor:pointer;margin-top:2px}
+  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;background:#1a1a1a;cursor:pointer}
+  input[type="range"]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;background:#1a1a1a;border:none;cursor:pointer}
+  .range-labels{display:flex;justify-content:space-between;font-size:.68rem;color:#bbb;margin-top:2px}
+
+  /* BANNER */
+  .summary-banner{background:#1a1a1a;color:#fff;border-radius:14px;padding:1.25rem 1.5rem;margin-bottom:1.25rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:1rem}
+  .sb-item .sl{font-size:.7rem;color:#aaa;margin-bottom:3px}
+  .sb-item .sv{font-size:1.1rem;font-weight:700;color:#fff}
+  .sb-item .sv.accent{color:#5DCAA5}
+  .sb-item .sv.warn{color:#FAC775}
+  .sb-item .sv.lender{color:#EF9F27}
+
+  /* TABS */
+  .tabs{display:flex;gap:8px;margin-bottom:1.5rem;background:#fff;border-radius:12px;padding:6px;border:1px solid #e5e5e0;flex-wrap:wrap}
+  .tab{flex:1;min-width:110px;padding:9px 8px;border:none;background:transparent;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;color:#666;transition:all .2s}
+  .tab.active{background:#1a1a1a;color:#fff}
+  .panel{display:none}
+  .panel.active{display:block}
+
+  /* METRICS */
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+  .metric{background:#f5f5f0;border-radius:10px;padding:1rem}
+  .metric .label{font-size:.73rem;color:#777;margin-bottom:4px}
+  .metric .value{font-size:1.2rem;font-weight:700;color:#1a1a1a}
+  .metric.green .value{color:#0a7c57}
+  .metric.blue .value{color:#1558a0}
+  .metric.amber .value{color:#b06e0a}
+  .metric.red .value{color:#a32d2d}
+  .metric.purple .value{color:#534AB7}
+  .metric.gold .value{color:#854f0b}
+
+  /* CHARTS */
+  .charts-row{display:grid;grid-template-columns:1fr 2fr;gap:1.25rem;align-items:start;margin-bottom:1.25rem}
+  @media(max-width:600px){.charts-row{grid-template-columns:1fr}}
+  .chart-wrap{background:#fff;border-radius:16px;border:1px solid #e5e5e0;padding:1.25rem;margin-bottom:1.25rem}
+  .chart-title{font-size:.73rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:1rem}
+  .donut-container{position:relative;height:180px}
+  .med-container{position:relative;height:230px}
+  .tall-container{position:relative;height:270px}
+  .legend{display:flex;gap:14px;margin-top:10px;font-size:.73rem;color:#666;flex-wrap:wrap}
+  .legend span{display:flex;align-items:center;gap:5px}
+  .legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+
+  /* TABLES */
+  table{width:100%;border-collapse:collapse;font-size:.82rem}
+  thead tr{background:#f5f5f0}
+  th{padding:9px 10px;text-align:left;font-weight:700;font-size:.71rem;color:#666;text-transform:uppercase;letter-spacing:.03em}
+  th:not(:first-child){text-align:right}
+  td{padding:8px 10px;border-top:1px solid #f0f0eb}
+  td:not(:first-child){text-align:right}
+  tr:nth-child(even) td{background:#fafaf8}
+
+  /* COLOR HELPERS */
+  .gt{color:#0a7c57;font-weight:600}
+  .bt{color:#1558a0;font-weight:600}
+  .at{color:#b06e0a;font-weight:600}
+  .rt{color:#a32d2d;font-weight:600}
+  .pt{color:#534AB7;font-weight:600}
+  .ot{color:#854f0b;font-weight:600}
+
+  /* ANALYSIS */
+  .analysis-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.25rem;margin-bottom:1.25rem}
+  .analysis-card{background:#fff;border-radius:16px;border:1px solid #e5e5e0;padding:1.25rem}
+  .analysis-card h3{font-size:.83rem;font-weight:700;margin-bottom:1rem}
+  .arow{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0eb;font-size:.82rem}
+  .arow:last-child{border-bottom:none}
+  .arow .al{color:#666}
+  .arow .av{font-weight:600}
+
+  /* VERDICT */
+  .verdict{border-radius:12px;padding:1.25rem;margin-bottom:1.25rem;border:1px solid #9fe1cb;background:#f0faf5}
+  .verdict h3{font-size:.95rem;font-weight:700;color:#0a7c57;margin-bottom:.6rem}
+  .verdict p{font-size:.85rem;color:#333;line-height:1.65}
+
+  /* ENG HIGHLIGHT */
+  .eng-highlight{background:#eeedfe;border:1px solid #afa9ec;border-radius:12px;padding:1.25rem;margin-bottom:1.25rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .eh-item .el{font-size:.73rem;color:#534AB7;margin-bottom:3px;font-weight:600}
+  .eh-item .ev{font-size:1.25rem;font-weight:700;color:#26215C}
+
+  /* LENDER HIGHLIGHT */
+  .lender-highlight{background:#faeeda;border:1px solid #fac775;border-radius:12px;padding:1.25rem;margin-bottom:1.25rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .lh-item .ll{font-size:.73rem;color:#854f0b;margin-bottom:3px;font-weight:600}
+  .lh-item .lv{font-size:1.25rem;font-weight:700;color:#412402}
+
+  .note{font-size:.72rem;color:#aaa;text-align:center;margin-top:1rem;padding-bottom:1.5rem;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Simulador de Compra de Local</h1>
+    <p>Edita los valores directamente o usa los sliders</p>
+  </header>
+
+  <!-- INPUTS -->
+  <div class="card">
+    <div class="card-title">Parámetros — escribe o desliza</div>
+    <div class="inputs-grid">
+
+      <div class="input-group">
+        <label>Precio del local</label>
+        <div class="input-row">
+          <span class="unit">$</span>
+          <input type="number" id="precioNum" min="10000" max="2000000" step="1000" value="300000">
+        </div>
+        <input type="range" id="precioSlider" min="10000" max="2000000" step="10000" value="300000">
+        <div class="range-labels"><span>$10k</span><span>$2M</span></div>
+      </div>
+
+      <div class="input-group">
+        <label>Enganche (pago inicial)</label>
+        <div class="input-row">
+          <input type="number" id="engNum" min="5" max="60" step="1" value="20">
+          <span class="unit">%</span>
+          <span class="unit" id="engMontoLabel" style="font-size:.8rem;color:#534AB7;font-weight:700;min-width:70px"></span>
+        </div>
+        <input type="range" id="engSlider" min="5" max="60" step="1" value="20">
+        <div class="range-labels"><span>5%</span><span>60%</span></div>
+      </div>
+
+      <div class="input-group">
+        <label>Tasa anual</label>
+        <div class="input-row">
+          <input type="number" id="tasaNum" min="0.1" max="50" step="0.1" value="9">
+          <span class="unit">%</span>
+        </div>
+        <input type="range" id="tasaSlider" min="1" max="30" step="1" value="9">
+        <div class="range-labels"><span>1%</span><span>30%</span></div>
+      </div>
+
+      <div class="input-group">
+        <label>Plazo</label>
+        <div class="input-row">
+          <input type="number" id="plazoNum" min="1" max="30" step="1" value="15">
+          <span class="unit">años</span>
+        </div>
+        <input type="range" id="plazoSlider" min="1" max="30" step="1" value="15">
+        <div class="range-labels"><span>1 año</span><span>30 años</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- BANNER -->
+  <div class="summary-banner">
+    <div class="sb-item"><div class="sl">Precio del local</div><div class="sv" id="b-precio">—</div></div>
+    <div class="sb-item"><div class="sl">Enganche inicial</div><div class="sv warn" id="b-enganche">—</div></div>
+    <div class="sb-item"><div class="sl">Monto financiado</div><div class="sv" id="b-financiar">—</div></div>
+    <div class="sb-item"><div class="sl">Cuota mensual</div><div class="sv accent" id="b-cuota">—</div></div>
+    <div class="sb-item"><div class="sl">Ganancia prestamista/mes</div><div class="sv lender" id="b-ganmes">—</div></div>
+    <div class="sb-item"><div class="sl">Costo total del local</div><div class="sv" id="b-total">—</div></div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('resumen')">Resumen</button>
+    <button class="tab" onclick="switchTab('prestamista')">Prestamista</button>
+    <button class="tab" onclick="switchTab('amortizacion')">Amortización</button>
+    <button class="tab" onclick="switchTab('analisis')">Análisis completo</button>
+  </div>
+
+  <!-- ===== RESUMEN ===== -->
+  <div id="panel-resumen" class="panel active">
+    <div class="eng-highlight">
+      <div class="eh-item"><div class="el">Pago inicial (enganche)</div><div class="ev" id="e-monto">—</div></div>
+      <div class="eh-item"><div class="el">% del precio</div><div class="ev" id="e-pct">—</div></div>
+      <div class="eh-item"><div class="el">Monto financiado</div><div class="ev" id="e-financiado">—</div></div>
+      <div class="eh-item"><div class="el">Ahorro vs sin enganche</div><div class="ev" id="e-ahorro">—</div></div>
+    </div>
+    <div class="card">
+      <div class="metrics">
+        <div class="metric purple"><div class="label">Enganche</div><div class="value" id="r-enganche">—</div></div>
+        <div class="metric"><div class="label">Monto financiado</div><div class="value" id="r-financiado">—</div></div>
+        <div class="metric blue"><div class="label">Cuota mensual</div><div class="value" id="r-cuota">—</div></div>
+        <div class="metric red"><div class="label">Intereses totales</div><div class="value" id="r-intereses">—</div></div>
+        <div class="metric amber"><div class="label">Total en cuotas</div><div class="value" id="r-totalsin">—</div></div>
+        <div class="metric"><div class="label">Costo total (eng+cuotas)</div><div class="value" id="r-totalcon">—</div></div>
+        <div class="metric amber"><div class="label">Sobrecosto sobre precio</div><div class="value" id="r-sobrecosto">—</div></div>
+        <div class="metric green"><div class="label">Tasa mensual efectiva</div><div class="value" id="r-tasamens">—</div></div>
+      </div>
+    </div>
+    <div class="charts-row">
+      <div class="chart-wrap">
+        <div class="chart-title">Distribución del costo total</div>
+        <div class="donut-container"><canvas id="donutChart" role="img" aria-label="Enganche, capital, intereses"></canvas></div>
+        <div class="legend">
+          <span><span class="legend-dot" style="background:#7F77DD"></span>Enganche</span>
+          <span><span class="legend-dot" style="background:#B4B2A9"></span>Capital</span>
+          <span><span class="legend-dot" style="background:#E24B4A"></span>Intereses</span>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-title">Saldo pendiente por año</div>
+        <div class="med-container"><canvas id="barChart" role="img" aria-label="Saldo por año"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">Cuota mensual según enganche %</div>
+      <div class="med-container"><canvas id="engancheChart" role="img" aria-label="Cuota según enganche"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ===== PRESTAMISTA ===== -->
+  <div id="panel-prestamista" class="panel">
+    <div class="lender-highlight">
+      <div class="lh-item"><div class="ll">Ganancia mes 1</div><div class="lv" id="l-mes1">—</div></div>
+      <div class="lh-item"><div class="ll">Ganancia promedio/mes</div><div class="lv" id="l-mesprom">—</div></div>
+      <div class="lh-item"><div class="ll">Ganancia año 1</div><div class="lv" id="l-anio1">—</div></div>
+      <div class="lh-item"><div class="ll">Ganancia total</div><div class="lv" id="l-total">—</div></div>
+    </div>
+    <div class="card">
+      <div class="metrics">
+        <div class="metric gold"><div class="label">Interés mes 1</div><div class="value" id="l-intmes1">—</div></div>
+        <div class="metric gold"><div class="label">Interés promedio/mes</div><div class="value" id="l-intprommes">—</div></div>
+        <div class="metric gold"><div class="label">Interés año 1</div><div class="value" id="l-intanio1">—</div></div>
+        <div class="metric gold"><div class="label">Interés total cobrado</div><div class="value" id="l-inttotal">—</div></div>
+        <div class="metric green"><div class="label">ROI anual efectivo</div><div class="value" id="l-roi">—</div></div>
+        <div class="metric green"><div class="label">Yield mensual</div><div class="value" id="l-yield">—</div></div>
+        <div class="metric blue"><div class="label">Tasa mensual</div><div class="value" id="l-tasamens">—</div></div>
+        <div class="metric blue"><div class="label">Recuperas capital en</div><div class="value" id="l-be">—</div></div>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">Interés cobrado por año</div>
+      <div class="med-container"><canvas id="lenderBarChart" role="img" aria-label="Interés cobrado por año"></canvas></div>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">Interés acumulado vs capital recuperado</div>
+      <div class="med-container"><canvas id="lenderLineChart" role="img" aria-label="Acumulado prestamista"></canvas></div>
+      <div class="legend">
+        <span><span class="legend-dot" style="background:#EF9F27"></span>Interés acumulado</span>
+        <span><span class="legend-dot" style="background:#378ADD"></span>Capital recuperado</span>
+      </div>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Año</th><th>Int. cobrado</th><th>Int. acum.</th><th>Capital rec.</th><th>% capital</th><th>Saldo pend.</th></tr></thead>
+        <tbody id="lenderTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== AMORTIZACIÓN ===== -->
+  <div id="panel-amortizacion" class="panel">
+    <div class="card">
+      <table>
+        <thead><tr><th>Año</th><th>Cuota/mes</th><th>Capital</th><th>Interés</th><th>Int. acum.</th><th>Saldo</th></tr></thead>
+        <tbody id="amorTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== ANÁLISIS ===== -->
+  <div id="panel-analisis" class="panel">
+    <div class="verdict"><h3 id="verdictTitle">—</h3><p id="verdictText">—</p></div>
+    <div class="analysis-grid">
+      <div class="analysis-card">
+        <h3>Estructura de la compra</h3>
+        <div class="arow"><span class="al">Precio del local</span><span class="av" id="an-precio">—</span></div>
+        <div class="arow"><span class="al">Enganche (%)</span><span class="av pt" id="an-engpct">—</span></div>
+        <div class="arow"><span class="al">Enganche ($)</span><span class="av pt" id="an-engmonto">—</span></div>
+        <div class="arow"><span class="al">Monto financiado</span><span class="av" id="an-financiado">—</span></div>
+        <div class="arow"><span class="al">LTV</span><span class="av" id="an-ltv">—</span></div>
+        <div class="arow"><span class="al">Tasa anual / mensual</span><span class="av" id="an-tasa">—</span></div>
+        <div class="arow"><span class="al">Plazo</span><span class="av" id="an-plazo">—</span></div>
+      </div>
+      <div class="analysis-card">
+        <h3>Costos totales</h3>
+        <div class="arow"><span class="al">Enganche inicial</span><span class="av pt" id="an-c-eng">—</span></div>
+        <div class="arow"><span class="al">Capital en cuotas</span><span class="av" id="an-c-cap">—</span></div>
+        <div class="arow"><span class="al">Intereses en cuotas</span><span class="av rt" id="an-c-int">—</span></div>
+        <div class="arow"><span class="al">Total en cuotas</span><span class="av" id="an-c-cuotas">—</span></div>
+        <div class="arow"><span class="al">Costo total del local</span><span class="av" id="an-c-total">—</span></div>
+        <div class="arow"><span class="al">Sobrecosto</span><span class="av at" id="an-c-sobre">—</span></div>
+        <div class="arow"><span class="al">Pagas por cada $1</span><span class="av" id="an-c-por1">—</span></div>
+      </div>
+      <div class="analysis-card">
+        <h3>Vista prestamista</h3>
+        <div class="arow"><span class="al">Interés mes 1</span><span class="av ot" id="an-l-mes1">—</span></div>
+        <div class="arow"><span class="al">Interés promedio/mes</span><span class="av ot" id="an-l-prom">—</span></div>
+        <div class="arow"><span class="al">Ganancia año 1</span><span class="av gt" id="an-l-anio1">—</span></div>
+        <div class="arow"><span class="al">Ganancia total</span><span class="av gt" id="an-l-total">—</span></div>
+        <div class="arow"><span class="al">ROI anual efectivo</span><span class="av bt" id="an-l-roi">—</span></div>
+        <div class="arow"><span class="al">Yield mensual</span><span class="av bt" id="an-l-yield">—</span></div>
+      </div>
+      <div class="analysis-card">
+        <h3>Comparativa de enganches</h3>
+        <div id="engancheComp"></div>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">Evolución — capital pagado vs intereses vs saldo</div>
+      <div class="tall-container"><canvas id="evolutionChart" role="img" aria-label="Evolución del préstamo"></canvas></div>
+      <div class="legend">
+        <span><span class="legend-dot" style="background:#378ADD"></span>Capital pagado acum.</span>
+        <span><span class="legend-dot" style="background:#E24B4A"></span>Intereses acum.</span>
+        <span><span class="legend-dot" style="background:#ccc"></span>Saldo pendiente</span>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">Amortización francesa (cuota fija, interés compuesto mensual). No incluye impuestos, notaría, seguros ni gastos de cierre. Solo referencial.</p>
+</div>
+
+<script>
+let donutChart,barChart,engChart,lBarChart,lLineChart,evoChart;
+let currentTab='resumen';
+
+function switchTab(t){
+  currentTab=t;
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['resumen','prestamista','amortizacion','analisis'][i]===t));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+t).classList.add('active');
+  update();
+}
+
+const fmt=v=>'$'+Math.round(v).toLocaleString('en-US');
+const fmtK=v=>v>=1000000?'$'+(v/1000000).toFixed(2)+'M':v>=1000?'$'+(v/1000).toFixed(0)+'k':'$'+Math.round(v);
+const calcM=(P,rate,yr)=>{const r=rate/100/12,n=yr*12;if(r===0)return P/n;return P*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1)};
+
+function amort(P,rate,yr){
+  const r=rate/100/12,m=calcM(P,rate,yr);
+  let bal=P,rows=[];
+  for(let y=1;y<=yr;y++){
+    let yi=0,yp=0;
+    for(let mo=0;mo<12;mo++){const ip=bal*r,pp=m-ip;bal=Math.max(0,bal-pp);yi+=ip;yp+=pp;}
+    rows.push({y,yi,yp,bal});
+  }
+  return{rows,m};
+}
+
+// Sync input <-> slider pairs
+function syncPair(numId,sliderId,min,max){
+  const numEl=document.getElementById(numId);
+  const sldEl=document.getElementById(sliderId);
+  numEl.addEventListener('input',()=>{
+    let v=parseFloat(numEl.value);
+    if(isNaN(v))return;
+    v=Math.min(max,Math.max(min,v));
+    sldEl.value=v;
+    update();
+  });
+  sldEl.addEventListener('input',()=>{
+    numEl.value=sldEl.value;
+    update();
+  });
+}
+
+syncPair('precioNum','precioSlider',10000,2000000);
+syncPair('engNum','engSlider',5,60);
+syncPair('tasaNum','tasaSlider',0.1,50);
+syncPair('plazoNum','plazoSlider',1,30);
+
+function getVals(){
+  return{
+    precio:Math.max(10000,parseFloat(document.getElementById('precioNum').value)||300000),
+    engPct:Math.max(1,parseFloat(document.getElementById('engNum').value)||20),
+    rate:Math.max(0.1,parseFloat(document.getElementById('tasaNum').value)||9),
+    years:Math.max(1,parseInt(document.getElementById('plazoNum').value)||15)
+  };
+}
+
+function update(){
+  const{precio,engPct,rate,years}=getVals();
+  const eng=precio*engPct/100;
+  const fin=precio-eng;
+  const r=rate/100/12;
+  const{rows,m:monthly}=amort(fin,rate,years);
+  const totalQ=monthly*years*12;
+  const intT=totalQ-fin;
+  const costoT=eng+totalQ;
+  const sobre=((costoT-precio)/precio*100).toFixed(1);
+  const mCero=calcM(precio,rate,years);
+  const ahorro=(mCero*years*12-precio)-intT;
+
+  // Enganche label next to input
+  document.getElementById('engMontoLabel').textContent=fmt(eng);
+
+  // Banner
+  document.getElementById('b-precio').textContent=fmt(precio);
+  document.getElementById('b-enganche').textContent=fmt(eng);
+  document.getElementById('b-financiar').textContent=fmt(fin);
+  document.getElementById('b-cuota').textContent=fmt(monthly);
+  document.getElementById('b-ganmes').textContent=fmt(fin*r);
+  document.getElementById('b-total').textContent=fmt(costoT);
+
+  if(currentTab==='resumen')     renderResumen(precio,eng,engPct,fin,rate,years,rows,monthly,totalQ,intT,costoT,sobre,ahorro,r);
+  if(currentTab==='prestamista') renderPrestamista(fin,rate,years,rows,monthly,intT,r);
+  if(currentTab==='amortizacion')renderAmort(rows,monthly);
+  if(currentTab==='analisis')    renderAnalisis(precio,eng,engPct,fin,rate,years,rows,monthly,totalQ,intT,costoT,sobre,r);
+}
+
+/* ---- RESUMEN ---- */
+function renderResumen(precio,eng,engPct,fin,rate,years,rows,monthly,totalQ,intT,costoT,sobre,ahorro,r){
+  document.getElementById('e-monto').textContent=fmt(eng);
+  document.getElementById('e-pct').textContent=engPct+'%';
+  document.getElementById('e-financiado').textContent=fmt(fin);
+  document.getElementById('e-ahorro').textContent=fmt(ahorro);
+  document.getElementById('r-enganche').textContent=fmt(eng);
+  document.getElementById('r-financiado').textContent=fmt(fin);
+  document.getElementById('r-cuota').textContent=fmt(monthly);
+  document.getElementById('r-intereses').textContent=fmt(intT);
+  document.getElementById('r-totalsin').textContent=fmt(totalQ);
+  document.getElementById('r-totalcon').textContent=fmt(costoT);
+  document.getElementById('r-sobrecosto').textContent='+'+sobre+'%';
+  document.getElementById('r-tasamens').textContent=(rate/12).toFixed(3)+'%';
+
+  const dd=[Math.round(eng),Math.round(fin),Math.round(intT)];
+  if(donutChart){donutChart.data.datasets[0].data=dd;donutChart.update();}
+  else donutChart=new Chart(document.getElementById('donutChart'),{type:'doughnut',data:{labels:['Enganche','Capital','Intereses'],datasets:[{data:dd,backgroundColor:['#7F77DD','#B4B2A9','#E24B4A'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}}}});
+
+  const bL=rows.map(r=>'Año '+r.y),bD=rows.map(r=>Math.round(r.bal));
+  if(barChart){barChart.data.labels=bL;barChart.data.datasets[0].data=bD;barChart.update();}
+  else barChart=new Chart(document.getElementById('barChart'),{type:'bar',data:{labels:bL,datasets:[{label:'Saldo',data:bD,backgroundColor:'#378ADD',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{autoSkip:true,maxTicksLimit:10,font:{size:11}}},y:{ticks:{callback:v=>fmtK(v),font:{size:11}}}}}});
+
+  const ePcts=[5,10,15,20,25,30,35,40,45,50,55,60];
+  const eCuotas=ePcts.map(ep=>Math.round(calcM(precio*(1-ep/100),rate,years)));
+  const bgC=ePcts.map(ep=>ep===Math.round(engPct)?'#534AB7':'#AFA9EC');
+  if(engChart){engChart.data.datasets[0].data=eCuotas;engChart.data.datasets[0].backgroundColor=bgC;engChart.update();}
+  else engChart=new Chart(document.getElementById('engancheChart'),{type:'bar',data:{labels:ePcts.map(e=>e+'%'),datasets:[{label:'Cuota mensual',data:eCuotas,backgroundColor:bgC,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' $'+ctx.raw.toLocaleString('en-US')+'/mes'}}},scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{ticks:{callback:v=>'$'+v.toLocaleString('en-US'),font:{size:11}}}}}});
+}
+
+/* ---- PRESTAMISTA ---- */
+function renderPrestamista(fin,rate,years,rows,monthly,intT,r){
+  const intMes1=fin*r;
+  const intProm=intT/(years*12);
+  const intAnio1=rows[0].yi;
+  const roiAnual=((Math.pow(1+r,12)-1)*100).toFixed(2);
+  const yieldMes=(r*100).toFixed(3);
+  const be=(fin/monthly/12).toFixed(1);
+
+  document.getElementById('l-mes1').textContent=fmt(intMes1);
+  document.getElementById('l-mesprom').textContent=fmt(intProm);
+  document.getElementById('l-anio1').textContent=fmt(intAnio1);
+  document.getElementById('l-total').textContent=fmt(intT);
+  document.getElementById('l-intmes1').textContent=fmt(intMes1);
+  document.getElementById('l-intprommes').textContent=fmt(intProm);
+  document.getElementById('l-intanio1').textContent=fmt(intAnio1);
+  document.getElementById('l-inttotal').textContent=fmt(intT);
+  document.getElementById('l-roi').textContent=roiAnual+'%';
+  document.getElementById('l-yield').textContent=yieldMes+'%';
+  document.getElementById('l-tasamens').textContent=(rate/12).toFixed(3)+'%';
+  document.getElementById('l-be').textContent=be+' años';
+
+  const lbL=rows.map(r=>'Año '+r.y);
+  const lbD=rows.map(r=>Math.round(r.yi));
+  if(lBarChart){lBarChart.data.labels=lbL;lBarChart.data.datasets[0].data=lbD;lBarChart.update();}
+  else lBarChart=new Chart(document.getElementById('lenderBarChart'),{type:'bar',data:{labels:lbL,datasets:[{label:'Interés cobrado',data:lbD,backgroundColor:'#EF9F27',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{autoSkip:true,maxTicksLimit:10,font:{size:11}}},y:{ticks:{callback:v=>fmtK(v),font:{size:11}}}}}});
+
+  let cI=0,cP=0;
+  const cumI=[],cumP=[];
+  rows.forEach(({yi,yp})=>{cI+=yi;cP+=yp;cumI.push(Math.round(cI));cumP.push(Math.round(cP));});
+  if(lLineChart){lLineChart.data.labels=lbL;lLineChart.data.datasets[0].data=cumI;lLineChart.data.datasets[1].data=cumP;lLineChart.update();}
+  else lLineChart=new Chart(document.getElementById('lenderLineChart'),{type:'line',data:{labels:lbL,datasets:[{label:'Interés acum.',data:cumI,borderColor:'#EF9F27',backgroundColor:'rgba(239,159,39,.08)',fill:true,tension:.3,pointRadius:3},{label:'Capital rec.',data:cumP,borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,.08)',fill:true,tension:.3,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{autoSkip:true,maxTicksLimit:10,font:{size:11}}},y:{ticks:{callback:v=>fmtK(v),font:{size:11}}}}}});
+
+  const tb=document.getElementById('lenderTable');
+  tb.innerHTML='';
+  let cumInt=0,cumCap=0;
+  rows.forEach(({y,yi,yp,bal})=>{
+    cumInt+=yi;cumCap+=yp;
+    tb.innerHTML+=`<tr><td>Año ${y}</td><td class="ot">${fmt(yi)}</td><td class="gt">${fmt(cumInt)}</td><td class="bt">${fmt(cumCap)}</td><td class="at">${((cumCap/fin)*100).toFixed(1)}%</td><td>${fmt(bal)}</td></tr>`;
+  });
+}
+
+/* ---- AMORTIZACIÓN ---- */
+function renderAmort(rows,monthly){
+  const tb=document.getElementById('amorTable');
+  tb.innerHTML='';
+  let ci=0;
+  rows.forEach(({y,yi,yp,bal})=>{ci+=yi;tb.innerHTML+=`<tr><td>Año ${y}</td><td>${fmt(monthly)}</td><td class="bt">${fmt(yp)}</td><td class="rt">${fmt(yi)}</td><td class="at">${fmt(ci)}</td><td>${fmt(bal)}</td></tr>`;});
+}
+
+/* ---- ANÁLISIS ---- */
+function renderAnalisis(precio,eng,engPct,fin,rate,years,rows,monthly,totalQ,intT,costoT,sobre,r){
+  const ltv=(fin/precio*100).toFixed(1);
+  const int1=rows[0].yi;
+  const intProm=intT/(years*12);
+  const be=(fin/monthly/12).toFixed(1);
+  const recEng=(eng/monthly/12).toFixed(1);
+  const roiAnual=((Math.pow(1+r,12)-1)*100).toFixed(2);
+  const yield_=((r)*100).toFixed(3);
+
+  document.getElementById('an-precio').textContent=fmt(precio);
+  document.getElementById('an-engpct').textContent=engPct+'%';
+  document.getElementById('an-engmonto').textContent=fmt(eng);
+  document.getElementById('an-financiado').textContent=fmt(fin);
+  document.getElementById('an-ltv').textContent=ltv+'%';
+  document.getElementById('an-tasa').textContent=rate+'% / '+(rate/12).toFixed(3)+'%';
+  document.getElementById('an-plazo').textContent=years+(years===1?' año':' años')+' ('+years*12+' cuotas)';
+  document.getElementById('an-c-eng').textContent=fmt(eng);
+  document.getElementById('an-c-cap').textContent=fmt(fin);
+  document.getElementById('an-c-int').textContent=fmt(intT);
+  document.getElementById('an-c-cuotas').textContent=fmt(totalQ);
+  document.getElementById('an-c-total').textContent=fmt(costoT);
+  document.getElementById('an-c-sobre').textContent='+'+sobre+'%';
+  document.getElementById('an-c-por1').textContent='$'+(costoT/precio).toFixed(3);
+  document.getElementById('an-l-mes1').textContent=fmt(fin*r);
+  document.getElementById('an-l-prom').textContent=fmt(intProm);
+  document.getElementById('an-l-anio1').textContent=fmt(int1);
+  document.getElementById('an-l-total').textContent=fmt(intT);
+  document.getElementById('an-l-roi').textContent=roiAnual+'%';
+  document.getElementById('an-l-yield').textContent=yield_+'%';
+
+  const comp=document.getElementById('engancheComp');
+  comp.innerHTML='';
+  [5,10,15,20,25,30,40,50].forEach(ep=>{
+    const m=calcM(precio*(1-ep/100),rate,years);
+    const act=Math.round(ep)===Math.round(engPct);
+    comp.innerHTML+=`<div class="arow" style="${act?'background:#eeedfe;border-radius:6px;padding:6px 4px;':''}"><span class="al">${ep}% (${fmtK(precio*ep/100)})</span><span class="av ${act?'pt':''}">${fmt(m)}/mes</span></div>`;
+  });
+
+  const vT=document.getElementById('verdictTitle'),vP=document.getElementById('verdictText');
+  const cr=(costoT-precio)/precio;
+  if(fin/precio<=0.7&&cr<0.3){vT.textContent='Estructura sólida';vP.textContent=`Con ${engPct}% de enganche (${fmt(eng)}) y tasa del ${rate}% a ${years} años, el sobrecosto es del ${sobre}%. LTV de ${ltv}% — buena posición. El prestamista gana ${fmt(fin*r)}/mes de interés en el primer mes, con ROI anual del ${roiAnual}%.`;}
+  else if(fin/precio<=0.85&&cr<0.6){vT.textContent='Financiamiento moderado';vP.textContent=`Pagarás ${fmt(intT)} en intereses. Si aumentas el enganche al ${Math.min(Math.round(engPct)+10,60)}% ahorrarías aprox. ${fmt(intT-(calcM(precio*(1-(Math.min(Math.round(engPct)+10,60))/100),rate,years)*years*12-precio*(1-(Math.min(Math.round(engPct)+10,60))/100)))} en intereses y la cuota bajaría a ${fmt(calcM(precio*(1-(Math.min(Math.round(engPct)+10,60))/100),rate,years))}/mes.`;}
+  else{vT.textContent='Costo financiero elevado — revisar condiciones';vP.textContent=`LTV del ${ltv}% y ${sobre}% de sobrecosto. Recomendable aumentar el enganche o negociar la tasa. Con 30% de enganche la cuota sería ${fmt(calcM(precio*0.7,rate,years))}/mes e intereses de ${fmt(calcM(precio*0.7,rate,years)*years*12-precio*0.7)}.`;}
+
+  let cc=0,ci2=0;const cC=[],cI=[],sds=[];
+  rows.forEach(({yp,yi,bal})=>{cc+=yp;ci2+=yi;cC.push(Math.round(cc));cI.push(Math.round(ci2));sds.push(Math.round(bal));});
+  const eL=rows.map(r=>'Año '+r.y);
+  if(evoChart){evoChart.data.labels=eL;evoChart.data.datasets[0].data=cC;evoChart.data.datasets[1].data=cI;evoChart.data.datasets[2].data=sds;evoChart.update();}
+  else evoChart=new Chart(document.getElementById('evolutionChart'),{type:'line',data:{labels:eL,datasets:[{label:'Capital pagado',data:cC,borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,.07)',fill:true,tension:.3,pointRadius:3},{label:'Intereses',data:cI,borderColor:'#E24B4A',backgroundColor:'rgba(226,75,74,.07)',fill:true,tension:.3,pointRadius:3},{label:'Saldo',data:sds,borderColor:'#ccc',backgroundColor:'rgba(200,200,200,.05)',fill:true,tension:.3,borderDash:[5,4],pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.raw)}}},scales:{x:{grid:{display:false},ticks:{autoSkip:true,maxTicksLimit:10,font:{size:11}}},y:{ticks:{callback:v=>fmtK(v),font:{size:11}}}}}});
+}
+
+update();
+</script>
+</body>
+</html>
